@@ -104,7 +104,7 @@ function TopNav() {
         <div className="ml-auto flex items-center gap-2 lg:hidden">
           <Link
             to="/flow/upload"
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-[13.5px] font-semibold text-white shadow-cta"
+            className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-xl bg-brand px-4 text-[13.5px] font-semibold text-white shadow-cta"
           >
             <Upload className="h-3.5 w-3.5" /> Try Now
           </Link>
