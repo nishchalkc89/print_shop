@@ -493,20 +493,20 @@ function HowItWorks() {
                 {s.n}
               </span>
 
-              {/* Icon */}
-              <span
-                className="relative inline-grid h-14 w-14 place-items-center rounded-2xl transition-transform duration-300 group-hover:scale-105"
-                style={{ background: s.soft, color: s.color }}
-              >
-                <s.icon className="h-7 w-7" strokeWidth={2} />
-              </span>
-
-              {/* Step badge */}
-              <div
-                className="mt-5 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider"
-                style={{ background: s.soft, color: s.color }}
-              >
-                Step {s.n}
+              {/* Icon + Step badge — stacked vertically */}
+              <div className="flex flex-col items-start gap-4">
+                <span
+                  className="inline-grid h-14 w-14 shrink-0 place-items-center rounded-2xl transition-transform duration-300 group-hover:scale-105"
+                  style={{ background: s.soft, color: s.color }}
+                >
+                  <s.icon className="h-7 w-7" strokeWidth={2} />
+                </span>
+                <div
+                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider"
+                  style={{ background: s.soft, color: s.color }}
+                >
+                  Step {s.n}
+                </div>
               </div>
 
               <h3 className="mt-2.5 text-[20px] font-extrabold leading-tight text-ink">
