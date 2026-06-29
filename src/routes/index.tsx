@@ -71,23 +71,21 @@ function TopNav() {
   const scrolled = useScrolled();
 
   return (
-    <header className="sticky top-0 z-50 mx-auto max-w-[1320px] px-4 pt-4 sm:px-6 lg:px-8">
-      <div
-        className={`flex h-16 items-center gap-4 rounded-2xl px-4 transition-all duration-300 sm:px-6 ${
-          scrolled
-            ? "border border-hairline bg-surface/95 shadow-card backdrop-blur-md"
-            : "border border-transparent bg-transparent"
-        }`}
-      >
+    <header
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-surface/95 shadow-[0_1px_0_0_var(--color-hairline)] backdrop-blur-md" : "bg-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-[1320px] items-center px-4 sm:px-6 lg:px-8">
         <BrandLogo />
 
         {/* Desktop links */}
-        <nav className="ml-4 hidden items-center gap-1 lg:flex">
+        <nav className="ml-6 hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((n) => (
             <button
               key={n.label}
               onClick={() => scrollTo(n.href.slice(1))}
-              className="rounded-lg px-3 py-2 text-[14px] font-semibold text-body transition hover:bg-page hover:text-ink"
+              className="rounded-lg px-3 py-2 text-[14px] font-semibold text-body transition hover:text-ink"
             >
               {n.label}
             </button>
@@ -102,28 +100,35 @@ function TopNav() {
           <Upload className="h-4 w-4" /> Try Now
         </Link>
 
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="ml-auto inline-grid h-10 w-10 place-items-center rounded-xl border border-hairline bg-surface transition hover:bg-page lg:hidden"
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="h-5 w-5 text-ink" /> : <Menu className="h-5 w-5 text-ink" />}
-        </button>
+        {/* Mobile: CTA + hamburger */}
+        <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <Link
+            to="/flow/upload"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-[13.5px] font-semibold text-white shadow-cta"
+          >
+            <Upload className="h-3.5 w-3.5" /> Try Now
+          </Link>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="inline-grid h-9 w-9 place-items-center rounded-xl border border-hairline bg-surface/80"
+            aria-label="Toggle menu"
+          >
+            {open ? <X className="h-4.5 w-4.5 text-ink" /> : <Menu className="h-4.5 w-4.5 text-ink" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scaleY: 0.95 }}
-            animate={{ opacity: 1, y: 0, scaleY: 1 }}
-            exit={{ opacity: 0, y: -8, scaleY: 0.95 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: "top" }}
-            className="mt-2 overflow-hidden rounded-2xl border border-hairline bg-surface shadow-card"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="border-t border-hairline bg-surface/95 backdrop-blur-md lg:hidden"
           >
-            <div className="flex flex-col p-3">
+            <div className="mx-auto flex max-w-[1320px] flex-col gap-1 px-4 py-3">
               {NAV_LINKS.map((n) => (
                 <button
                   key={n.label}
@@ -133,15 +138,6 @@ function TopNav() {
                   {n.label}
                 </button>
               ))}
-              <div className="mt-2 border-t border-hairline pt-2">
-                <Link
-                  to="/flow/upload"
-                  onClick={() => setOpen(false)}
-                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white shadow-cta"
-                >
-                  <Upload className="h-5 w-5" /> Upload & Print Free
-                </Link>
-              </div>
             </div>
           </motion.div>
         )}
