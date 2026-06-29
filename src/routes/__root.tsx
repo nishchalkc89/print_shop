@@ -109,7 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
-      { rel: "apple-touch-icon", href: "/icons/icon.svg" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -238,9 +238,6 @@ function PWAInstallBanner() {
               </div>
 
               {/* iOS hint */}
-              <p className="mt-3 text-center text-[11px] text-subtle">
-                iOS: tap <span className="font-bold">Share →</span> "Add to Home Screen"
-              </p>
             </div>
           </div>
         </motion.div>
