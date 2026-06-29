@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2563EB"/>
+  <g stroke="white" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Cloud icon -->
+    <path d="M336 288c26.5 0 48-21.5 48-48s-21.5-48-48-48c-0.8 0-1.5 0-2.3 0.1C326.5 173.4 305.1 152 278 152c-30.9 0-56 25.1-56 56 0 0.4 0 0.8 0 1.2C207.3 213.8 192 231.5 192 252c0 19.9 16.1 36 36 36h108z"/>
+    <line x1="256" y1="300" x2="256" y2="380"/>
+    <polyline points="226,350 256,380 286,350"/>
+  </g>
+</svg>
