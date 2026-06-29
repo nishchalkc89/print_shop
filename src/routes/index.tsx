@@ -403,9 +403,9 @@ function QrPattern() {
 const HOW_STEPS = [
   {
     n: "01",
-    title: "Upload Files",
-    desc: "Go to PrintCloud and upload your PDF, Word docs, images — straight from your phone or desktop. No USB, no cables.",
-    icon: Upload,
+    title: "Scan Shop QR",
+    desc: "At any PrintCloud-enabled shop, scan the QR code on the counter to open your print session instantly.",
+    icon: QrCode,
     color: "#2563EB",
     glow: "rgba(37,99,235,0.20)",
     soft: "rgba(37,99,235,0.12)",
