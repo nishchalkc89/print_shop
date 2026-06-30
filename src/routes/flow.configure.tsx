@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowLeft, Minus, Plus, Eye, ShieldCheck, Clock, FileType2, Palette, RotateCw, X } from "lucide-react";
+import { ArrowRight, ArrowLeft, Minus, Plus, Eye, ShieldCheck, Clock, FileType2, Palette, RotateCw, X, Printer } from "lucide-react";
 import { useFlow, type PrintSettings } from "@/lib/flow-context";
 import { FileTypeIcon } from "@/components/printcloud/primitives";
 import { Card, Header, blobCache } from "./flow.upload";
@@ -67,21 +67,35 @@ function PrintPreviewModal({
   files,
   orientation,
   paper,
+  color,
   onClose,
 }: {
   files: ReturnType<typeof useFlow>["files"];
   orientation: "portrait" | "landscape";
   paper: string;
+  color: "bw" | "color";
   onClose: () => void;
 }) {
   const isLandscape = orientation === "landscape";
+  const isBW = color === "bw";
+
+  // Paper aspect ratios
+  const ratio = paper === "A5" ? (148 / 210) : paper === "Letter" ? (8.5 / 11) : (210 / 297); // A4 default
+  const paperStyle = isLandscape
+    ? { aspectRatio: `${1 / ratio}`, maxWidth: "100%", width: "min(620px, 100%)" }
+    : { aspectRatio: `${ratio}`, maxWidth: "100%", width: "min(420px, 100%)" };
+
+  // CSS filter that simulates physical print output
+  const printFilter = isBW
+    ? "grayscale(1) contrast(1.15) brightness(0.93)"
+    : "contrast(1.05) brightness(0.97) saturate(0.85)";
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={onClose}
     >
       <motion.div
@@ -89,81 +103,129 @@ function PrintPreviewModal({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl"
+        className="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-[#1a1d23] shadow-2xl sm:rounded-3xl"
         style={{ maxHeight: "94dvh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
-          <div>
-            <div className="text-[15px] font-extrabold text-ink">Print Preview</div>
-            <div className="text-[12px] text-body">
-              {paper} · {orientation.charAt(0).toUpperCase() + orientation.slice(1)}
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/10">
+              <Printer className="h-4 w-4 text-white" />
+            </span>
+            <div>
+              <div className="text-[15px] font-extrabold text-white">Print Preview</div>
+              <div className="text-[12px] text-white/50">
+                {paper} · {isLandscape ? "Landscape" : "Portrait"} · {isBW ? "Black & White" : "Color"}
+              </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-xl border border-hairline hover:bg-page"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 hover:bg-white/10"
           >
-            <X className="h-4 w-4 text-ink" />
+            <X className="h-4 w-4 text-white/70" />
           </button>
         </div>
 
-        {/* Orientation indicator bar */}
-        <div className="flex items-center gap-2 border-b border-hairline bg-page/60 px-5 py-2.5">
+        {/* Info strip */}
+        <div className="flex items-center gap-3 border-b border-white/10 bg-white/5 px-5 py-2.5">
           <div
-            className="shrink-0 rounded border-2 border-brand bg-white shadow-sm"
-            style={{
-              width: isLandscape ? 28 : 18,
-              height: isLandscape ? 18 : 28,
-            }}
+            className="shrink-0 rounded border border-white/30 bg-white/20"
+            style={{ width: isLandscape ? 30 : 18, height: isLandscape ? 18 : 30 }}
           />
-          <span className="text-[12px] font-semibold text-body">
-            {paper} · {isLandscape ? "Landscape" : "Portrait"} — pages will print in this orientation
+          <span className="text-[12px] font-semibold text-white/60">
+            This is how your document will look when printed
+            {isBW ? " — in black & white" : " — in color"}
           </span>
         </div>
 
-        {/* Preview area */}
-        <div className="flex flex-1 flex-col items-center gap-5 overflow-auto bg-[#e0e0e0] p-5">
+        {/* Simulated print tray — dark room, paper on table */}
+        <div
+          className="flex flex-1 flex-col items-center gap-6 overflow-auto px-5 py-8"
+          style={{ background: "radial-gradient(ellipse at 50% 30%, #2a2d35 0%, #0f1115 100%)" }}
+        >
           {files.map((f) => {
             const url = blobCache.get(f.id);
             return (
-              <div key={f.id} className="w-full max-w-2xl">
-                <div className="mb-2 text-[11px] font-semibold text-body">{f.name}</div>
-                <div className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18)]">
+              <div key={f.id} className="flex flex-col items-center gap-3">
+                {/* File label */}
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-white/30">{f.name}</div>
+
+                {/* Physical paper sheet */}
+                <div
+                  style={{
+                    ...paperStyle,
+                    // Paper texture: warm white with subtle grain
+                    background: "#f4f1ec",
+                    boxShadow: "0 8px 40px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.06)",
+                    position: "relative",
+                    overflow: "hidden",
+                    borderRadius: "3px",
+                  }}
+                >
+                  {/* Subtle paper grain overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
+                      pointerEvents: "none",
+                      zIndex: 2,
+                    }}
+                  />
+
                   {!url ? (
-                    <div className="grid h-48 place-items-center text-[13px] text-body">
+                    <div className="grid h-full w-full place-items-center text-[13px] text-gray-400">
                       Preview lost — re-upload to view
                     </div>
                   ) : f.kind === "pdf" ? (
                     <embed
                       src={url}
                       type="application/pdf"
-                      className="w-full"
                       style={{
-                        height: isLandscape ? "480px" : "680px",
+                        width: "100%",
+                        height: "100%",
                         display: "block",
+                        filter: printFilter,
+                        position: "relative",
+                        zIndex: 1,
                       }}
                     />
                   ) : f.kind === "img" ? (
                     <img
                       src={url}
                       alt={f.name}
-                      className="w-full object-contain"
                       style={{
-                        transform: isLandscape ? "rotate(90deg)" : "none",
-                        maxHeight: "600px",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        filter: printFilter,
+                        display: "block",
+                        position: "relative",
+                        zIndex: 1,
                       }}
                     />
                   ) : (
-                    <div className="grid h-48 place-items-center text-[13px] text-body">
+                    <div className="grid h-full w-full place-items-center text-[13px] text-gray-400">
                       Preview not available for this file type
                     </div>
                   )}
                 </div>
+
+                {/* B&W badge */}
+                {isBW && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/50">
+                    <span className="h-2 w-2 rounded-full bg-white/40" /> Black & White print
+                  </div>
+                )}
               </div>
             );
           })}
+
+          <p className="pb-2 text-[11px] text-white/25">
+            Colors may vary slightly from actual print output
+          </p>
         </div>
       </motion.div>
     </motion.div>
@@ -412,6 +474,7 @@ function ConfigureStep() {
             files={files}
             orientation={settings.orientation}
             paper={settings.paper}
+            color={settings.color}
             onClose={() => setShowPreview(false)}
           />
         )}
