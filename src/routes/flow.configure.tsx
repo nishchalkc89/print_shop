@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, ArrowLeft, Minus, Plus, Eye, ShieldCheck, Clock, FileType2, Palette, RotateCw, X } from "lucide-react";
 import { useFlow, type PrintSettings } from "@/lib/flow-context";
 import { FileTypeIcon } from "@/components/printcloud/primitives";
 import { Card, Header, blobCache } from "./flow.upload";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 export const Route = createFileRoute("/flow/configure")({
@@ -176,6 +176,13 @@ function ConfigureStep() {
   const { files, settings, setSettings, totals } = useFlow();
   const { t } = useLang();
   const [showPreview, setShowPreview] = useState(false);
+  const navigate = useNavigate();
+
+  // Guard: must have uploaded files to reach this page
+  useEffect(() => {
+    if (files.length === 0) navigate({ to: "/flow/upload" });
+  }, [files.length]);
+
   const file = files[0];
   const s = settings;
   const upd = <K extends keyof PrintSettings>(k: K, v: PrintSettings[K]) => setSettings({ ...s, [k]: v });

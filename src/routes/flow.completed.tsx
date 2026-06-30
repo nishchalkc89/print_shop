@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { motion } from "motion/react";
-import { Check, Printer, Clock, Shield, Download, RotateCw, History, Star, ChevronRight, ShieldCheck, Trash2, Home } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Check, Printer, Clock, Shield, Download, RotateCw, History, Star, ChevronRight, ShieldCheck, Trash2, Home, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFlow } from "@/lib/flow-context";
 import { Card, blobCache } from "./flow.upload";
@@ -30,11 +30,138 @@ function hardDeleteFiles(setFiles: (f: []) => void) {
   setFiles([]);
 }
 
+function downloadReceipt(
+  totals: { pages: number; totalPages: number; pricePerPage: number; subtotal: number; total: number },
+  settings: { paper: string; color: string; copies: number; side: string; orientation: string; quality: string },
+  orderId: string,
+) {
+  const lines = [
+    "═══════════════════════════════════════",
+    "          PrintCloud Receipt           ",
+    "═══════════════════════════════════════",
+    `Order ID   : ${orderId}`,
+    `Date       : ${new Date().toLocaleString()}`,
+    "───────────────────────────────────────",
+    "  Print Settings",
+    "───────────────────────────────────────",
+    `Paper Size : ${settings.paper}`,
+    `Color Mode : ${settings.color === "bw" ? "Black & White" : "Color"}`,
+    `Orientation: ${settings.orientation.charAt(0).toUpperCase() + settings.orientation.slice(1)}`,
+    `Copies     : ${settings.copies}`,
+    `Print Type : ${settings.side === "single" ? "Single Side" : "Double Side"}`,
+    `Quality    : ${settings.quality.charAt(0).toUpperCase() + settings.quality.slice(1)}`,
+    "───────────────────────────────────────",
+    "  Price Breakdown",
+    "───────────────────────────────────────",
+    `Pages      : ${totals.pages}`,
+    `Total Pages: ${totals.totalPages}`,
+    `Per Page   : NPR ${totals.pricePerPage.toFixed(2)}`,
+    `Subtotal   : NPR ${totals.subtotal.toFixed(2)}`,
+    `Service Fee: NPR 0.00`,
+    `TOTAL      : NPR ${totals.total.toFixed(2)}`,
+    "───────────────────────────────────────",
+    `Payment    : eSewa  ✓ Paid`,
+    "═══════════════════════════════════════",
+    "  Thank you for choosing PrintCloud!   ",
+    "  Fast. Secure. Automatic.             ",
+    "═══════════════════════════════════════",
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `PrintCloud-Receipt-${orderId}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─── Rating Modal ─────────────────────────────────────────────────────────────
+
+function RatingModal({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+  const labels = ["Very Bad", "Bad", "Okay", "Good", "Excellent"];
+  const colors = ["text-[#E04646]", "text-[#E48A3A]", "text-[#E0B146]", "text-[#7ABE5A]", "text-success"];
+
+  function submit() {
+    if (selected === 0) return;
+    setSubmitted(true);
+    setTimeout(onClose, 1800);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-sm overflow-hidden rounded-3xl bg-surface shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+          <div className="text-[15px] font-extrabold text-ink">Rate Your Experience</div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-hairline hover:bg-page">
+            <X className="h-4 w-4 text-ink" />
+          </button>
+        </div>
+        <div className="p-6">
+          {submitted ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <span className="text-4xl">🙏</span>
+              <div className="text-[15px] font-extrabold text-ink">Thank you for your feedback!</div>
+              <div className="text-[13px] text-body">It helps us improve PrintCloud.</div>
+            </div>
+          ) : (
+            <>
+              <div className="text-center text-[13.5px] text-body">How was your printing experience today?</div>
+              <div className="mt-5 flex justify-center gap-3">
+                {labels.map((label, i) => {
+                  const n = i + 1;
+                  return (
+                    <button key={n} onClick={() => setSelected(n)} className="flex flex-col items-center gap-1.5">
+                      <span className={cn(
+                        "grid h-12 w-12 place-items-center rounded-full border-2 text-[22px] transition-all",
+                        selected === n ? "border-brand bg-brand-soft scale-110" : "border-hairline bg-page hover:scale-105",
+                        colors[i],
+                      )}>
+                        {n <= 2 ? "😞" : n === 3 ? "😐" : n === 4 ? "😊" : "🤩"}
+                      </span>
+                      <span className="text-[10px] font-semibold text-body">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={submit}
+                disabled={selected === 0}
+                className="mt-6 w-full rounded-xl bg-brand py-3 text-[14px] font-bold text-white shadow-cta transition disabled:cursor-not-allowed disabled:bg-hairline disabled:text-subtle"
+              >
+                Submit Feedback
+              </button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CompletedStep() {
   const { totals, settings, setFiles } = useFlow();
   const { t } = useLang();
   const [deleted, setDeleted] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   const navigate = useNavigate();
+  const orderId = sessionStorage.getItem("pc_txn_uuid") ?? `PC-${Date.now()}`;
 
   // Snapshot totals/settings before wipe so the completed page can display them
   const snapshot = useRef({ totals: { ...totals }, settings: { ...settings } });
@@ -126,28 +253,32 @@ function CompletedStep() {
         <Card>
           <div className="text-[15.5px] font-extrabold text-ink">{t.whatsNext ?? "What's Next?"}</div>
           <ul className="mt-4 space-y-2.5">
-            <Next icon={Download} title={t.downloadReceipt} sub={t.downloadReceiptSub} tone="blue" onClick={() => {}} />
+            <Next icon={Download} title={t.downloadReceipt} sub={t.downloadReceiptSub} tone="blue" onClick={() => downloadReceipt(displayTotals, displaySettings, orderId)} />
             <Next icon={RotateCw} title={t.printAgain} sub={t.printAgainSub} tone="green" onClick={() => navigate({ to: "/flow/upload" })} />
-            <Next icon={History} title={t.orderHistory} sub={t.orderHistorySub} tone="violet" onClick={() => {}} />
-            <Next icon={Star} title={t.rateExperience} sub={t.rateExperienceSub} tone="orange" onClick={() => {}} />
+            <Next icon={History} title={t.orderHistory} sub={t.orderHistorySub} tone="violet" onClick={() => alert("Order history coming soon!")} />
+            <Next icon={Star} title={t.rateExperience} sub={t.rateExperienceSub} tone="orange" onClick={() => setShowRating(true)} />
           </ul>
         </Card>
       </div>
 
       <div className="rounded-2xl border border-hairline bg-surface px-6 py-8 text-center shadow-card">
         <div className="text-[16px] font-extrabold text-ink">
-          Thank you for choosing PrintCloud <span className="text-brand">💙</span>
+          {t.thankYou}
         </div>
-        <div className="mt-1 text-[13px] text-body">Fast. Secure. Automatic.</div>
+        <div className="mt-1 text-[13px] text-body">{t.tagline}</div>
         <div className="mt-5 flex justify-center">
           <Link
             to="/"
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-6 text-[14px] font-semibold text-white shadow-cta"
           >
-            <Home className="h-4 w-4" /> Back to Home
+            <Home className="h-4 w-4" /> {t.backHome}
           </Link>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showRating && <RatingModal onClose={() => setShowRating(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

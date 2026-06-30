@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Check, Printer, FileText, ClipboardCheck, Clock, Bell, Smile, Frown, Meh, ArrowRight } from "lucide-react";
+import { useEffect } from "react";
 import { useFlow } from "@/lib/flow-context";
 import { Card } from "./flow.upload";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,13 @@ const STAGES = [
 function PrintingStep() {
   const { totals, settings, files } = useFlow();
   const { t } = useLang();
+  const navigate = useNavigate();
   const orderId = sessionStorage.getItem("pc_txn_uuid") ?? "#PC-DEMO";
+
+  // Guard: must have paid (txn uuid set) — else back to summary
+  useEffect(() => {
+    if (!sessionStorage.getItem("pc_txn_uuid")) navigate({ to: "/flow/summary" });
+  }, []);
 
   return (
     <div className="flex flex-col gap-5">

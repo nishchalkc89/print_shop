@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Edit3,
   FileType2,
@@ -40,6 +40,11 @@ function SummaryStep() {
   const { t } = useLang();
   const [paying, setPaying] = useState(false);
   const navigate = useNavigate();
+
+  // Guard: must have uploaded files
+  useEffect(() => {
+    if (files.length === 0) navigate({ to: "/flow/upload" });
+  }, [files.length]);
 
   async function handlePay() {
     setPaying(true);
