@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Check, Printer, FileText, ClipboardCheck, Download, Clock, Bell, Smile, Frown, Meh, ArrowRight } from "lucide-react";
+import { Check, Printer, FileText, ClipboardCheck, Clock, Bell, Smile, Frown, Meh, ArrowRight } from "lucide-react";
 import { useFlow } from "@/lib/flow-context";
 import { Card } from "./flow.upload";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/flow/printing")({
   head: () => ({
@@ -26,7 +27,9 @@ const STAGES = [
 ];
 
 function PrintingStep() {
-  const { totals, settings } = useFlow();
+  const { totals, settings, files } = useFlow();
+  const { t } = useLang();
+  const orderId = sessionStorage.getItem("pc_txn_uuid") ?? "#PC-DEMO";
 
   return (
     <div className="flex flex-col gap-5">
@@ -37,13 +40,10 @@ function PrintingStep() {
               Your order is being printed <span>🎉</span>
             </h1>
             <p className="mt-1 text-[13.5px] text-body">
-              Order ID: <span className="font-bold text-ink">#PC45871</span>{" "}
-              <span className="mx-1.5 text-subtle">•</span> Placed on May 18, 2025 at 10:32 AM
+              Order ID: <span className="font-bold text-ink">{orderId}</span>{" "}
+              <span className="mx-1.5 text-subtle">•</span> {new Date().toLocaleString()}
             </p>
           </div>
-          <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-hairline bg-surface px-4 text-[13px] font-semibold text-brand hover:bg-page">
-            <Download className="h-4 w-4" /> Download Receipt
-          </button>
         </div>
 
         {/* Timeline */}
@@ -84,18 +84,18 @@ function PrintingStep() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Card>
-          <div className="text-[15.5px] font-extrabold text-ink">Order Details</div>
+          <div className="text-[15.5px] font-extrabold text-ink">{t.orderSummary}</div>
           <ul className="mt-4 space-y-3 text-[13.5px]">
-            <Row label="Documents" value="2 files" />
-            <Row label="Total Pages" value={`${totals.totalPages} pages`} />
-            <Row label="Copies" value={String(settings.copies)} />
-            <Row label="Color Mode" value={settings.color === "bw" ? "Black & White" : "Color"} />
-            <Row label="Paper Size" value={settings.paper} />
-            <Row label="Print Type" value={settings.side === "single" ? "Single Side" : "Double Side"} />
+            <Row label="Documents" value={`${files.length} file${files.length !== 1 ? "s" : ""}`} />
+            <Row label={t.totalPages} value={`${totals.totalPages} ${t.pages.toLowerCase()}`} />
+            <Row label={t.copiesLabel} value={String(settings.copies)} />
+            <Row label={t.colorModeLabel} value={settings.color === "bw" ? t.bw : t.color} />
+            <Row label={t.paperSize} value={settings.paper} />
+            <Row label={t.printTypeLabel} value={settings.side === "single" ? t.singleSide : t.doubleSide} />
           </ul>
           <hr className="my-4 border-hairline" />
           <div className="flex items-center justify-between">
-            <div className="text-[14px] font-extrabold text-ink">Total Amount</div>
+            <div className="text-[14px] font-extrabold text-ink">{t.totalAmount}</div>
             <div className="text-[18px] font-extrabold text-brand">NPR {totals.total.toFixed(2)}</div>
           </div>
           <hr className="my-4 border-hairline" />

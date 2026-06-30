@@ -12,6 +12,7 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  Loader2,
 } from "lucide-react";
 import { useFlow, type UploadedFile } from "@/lib/flow-context";
 import { FileTypeIcon } from "@/components/printcloud/primitives";
@@ -31,7 +32,7 @@ const ACCEPTED = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.we
 const MAX_MB = 50;
 
 // Module-level blob URL cache — survives re-renders, cleared on removal
-const blobCache = new Map<string, string>();
+export const blobCache = new Map<string, string>();
 
 function detectKind(name: string): UploadedFile["kind"] {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -46,29 +47,42 @@ function estimatePages(file: File, kind: UploadedFile["kind"]): number {
   return Math.max(1, Math.round(file.size / 51200));
 }
 
-function processFiles(
+async function countPdfPages(file: File): Promise<number> {
+  try {
+    const buf = await file.arrayBuffer();
+    // Decode as latin1 — safe for binary PDF data
+    const text = new TextDecoder("latin1").decode(buf);
+    // PDF Pages dictionary has /Count N — the root Pages node holds the total
+    const matches = [...text.matchAll(/\/Count\s+(\d+)/g)];
+    if (matches.length > 0) {
+      return Math.max(...matches.map((m) => parseInt(m[1], 10)));
+    }
+    return estimatePages(file, "pdf");
+  } catch {
+    return estimatePages(file, "pdf");
+  }
+}
+
+async function processFiles(
   fileList: FileList,
-): { added: UploadedFile[]; errors: string[] } {
+): Promise<{ added: UploadedFile[]; errors: string[] }> {
   const added: UploadedFile[] = [];
   const errors: string[] = [];
 
-  Array.from(fileList).forEach((file) => {
-    const sizeMB = +(file.size / 1024 / 1024).toFixed(1);
-    if (sizeMB > MAX_MB) {
-      errors.push(`${file.name} exceeds ${MAX_MB} MB`);
-      return;
-    }
-    const kind = detectKind(file.name);
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    blobCache.set(id, URL.createObjectURL(file));
-    added.push({
-      id,
-      name: file.name,
-      sizeMB,
-      pages: estimatePages(file, kind),
-      kind,
-    });
-  });
+  await Promise.all(
+    Array.from(fileList).map(async (file) => {
+      const sizeMB = +(file.size / 1024 / 1024).toFixed(1);
+      if (sizeMB > MAX_MB) {
+        errors.push(`${file.name} exceeds ${MAX_MB} MB`);
+        return;
+      }
+      const kind = detectKind(file.name);
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      blobCache.set(id, URL.createObjectURL(file));
+      const pages = kind === "pdf" ? await countPdfPages(file) : estimatePages(file, kind);
+      added.push({ id, name: file.name, sizeMB, pages, kind });
+    }),
+  );
 
   return { added, errors };
 }
@@ -154,9 +168,9 @@ function PreviewModal({
               />
             </div>
           ) : file.kind === "pdf" ? (
-            <iframe
+            <embed
               src={url}
-              title={file.name}
+              type="application/pdf"
               className="h-[70dvh] w-full"
             />
           ) : (
@@ -185,14 +199,20 @@ function UploadStep() {
   const { t } = useLang();
   const [drag, setDrag] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [processing, setProcessing] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileList(fileList: FileList | null) {
+  async function handleFileList(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
-    const { added, errors: errs } = processFiles(fileList);
-    setFiles([...files, ...added]);
-    setErrors(errs);
+    setProcessing(true);
+    try {
+      const { added, errors: errs } = await processFiles(fileList);
+      setFiles([...files, ...added]);
+      setErrors(errs);
+    } finally {
+      setProcessing(false);
+    }
   }
 
   function removeFile(id: string) {
@@ -238,10 +258,10 @@ function UploadStep() {
             animate={{ scale: drag ? 1.1 : 1 }}
             className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-brand"
           >
-            <Cloud className="h-7 w-7" />
+            {processing ? <Loader2 className="h-7 w-7 animate-spin" /> : <Cloud className="h-7 w-7" />}
           </motion.span>
           <div className="mt-4 text-[17px] font-bold text-ink">
-            {drag ? t.uploadDrop : t.uploadDrag}
+            {processing ? "Reading file…" : drag ? t.uploadDrop : t.uploadDrag}
           </div>
           <div className="mt-1 text-[13px] text-body">{t.uploadOr}</div>
           <button

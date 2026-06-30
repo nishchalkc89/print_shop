@@ -36,6 +36,21 @@ const defaultSettings: PrintSettings = {
   margin: "none",
 };
 
+function parseRangeCount(rangeStr: string, totalPages: number): number {
+  let count = 0;
+  for (const part of rangeStr.split(",")) {
+    const t = part.trim();
+    if (t.includes("-")) {
+      const [a, b] = t.split("-").map((n) => parseInt(n.trim(), 10));
+      if (!isNaN(a) && !isNaN(b)) count += Math.max(0, Math.min(b, totalPages) - Math.max(1, a) + 1);
+    } else {
+      const n = parseInt(t, 10);
+      if (!isNaN(n) && n >= 1 && n <= totalPages) count++;
+    }
+  }
+  return Math.max(1, count);
+}
+
 function readStorage<T>(key: string, fallback: T): T {
   try {
     if (typeof window === "undefined" || typeof window.sessionStorage?.getItem !== "function") return fallback;
@@ -92,7 +107,10 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   }
 
   const totals = useMemo(() => {
-    const pages = files.reduce((s, f) => s + f.pages, 0) || 1;
+    const docPages = files.reduce((s, f) => s + f.pages, 0) || 1;
+    const pages = settings.range === "custom" && settings.customRange.trim()
+      ? parseRangeCount(settings.customRange, docPages)
+      : docPages;
     const totalPages = pages * settings.copies;
     const pricePerPage = settings.color === "color" ? 10 : 4;
     const subtotal = totalPages * pricePerPage;

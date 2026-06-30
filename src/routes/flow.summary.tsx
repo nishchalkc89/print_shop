@@ -206,8 +206,9 @@ function SummaryStep() {
 
             <p className="text-center text-[11.5px] text-body">
               {t.termsText}{" "}
-              <a className="font-semibold text-brand underline">{t.termsLink}</a> and{" "}
-              <a className="font-semibold text-brand underline">{t.privacyLink}</a>
+              <a href="/terms" className="font-semibold text-brand underline">{t.termsLink}</a>{" "}
+              {t.termsAnd}{" "}
+              <a href="/privacy" className="font-semibold text-brand underline">{t.privacyLink}</a>
             </p>
           </aside>
         </div>
@@ -285,6 +286,3 @@ function Trust({
   );
 }
 
-function cap(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}

@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowLeft, Minus, Plus, Eye, ShieldCheck, Clock, FileType2, Palette, RotateCw } from "lucide-react";
+import { ArrowRight, ArrowLeft, Minus, Plus, Eye, ShieldCheck, Clock, FileType2, Palette, RotateCw, X } from "lucide-react";
 import { useFlow, type PrintSettings } from "@/lib/flow-context";
 import { FileTypeIcon } from "@/components/printcloud/primitives";
-import { Card, Header } from "./flow.upload";
+import { Card, Header, blobCache } from "./flow.upload";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 export const Route = createFileRoute("/flow/configure")({
   head: () => ({
@@ -59,9 +61,121 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ─── Print Preview Modal ──────────────────────────────────────────────────────
+
+function PrintPreviewModal({
+  files,
+  orientation,
+  paper,
+  onClose,
+}: {
+  files: ReturnType<typeof useFlow>["files"];
+  orientation: "portrait" | "landscape";
+  paper: string;
+  onClose: () => void;
+}) {
+  const isLandscape = orientation === "landscape";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl"
+        style={{ maxHeight: "94dvh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+          <div>
+            <div className="text-[15px] font-extrabold text-ink">Print Preview</div>
+            <div className="text-[12px] text-body">
+              {paper} · {orientation.charAt(0).toUpperCase() + orientation.slice(1)}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-xl border border-hairline hover:bg-page"
+          >
+            <X className="h-4 w-4 text-ink" />
+          </button>
+        </div>
+
+        {/* Orientation indicator bar */}
+        <div className="flex items-center gap-2 border-b border-hairline bg-page/60 px-5 py-2.5">
+          <div
+            className="shrink-0 rounded border-2 border-brand bg-white shadow-sm"
+            style={{
+              width: isLandscape ? 28 : 18,
+              height: isLandscape ? 18 : 28,
+            }}
+          />
+          <span className="text-[12px] font-semibold text-body">
+            {paper} · {isLandscape ? "Landscape" : "Portrait"} — pages will print in this orientation
+          </span>
+        </div>
+
+        {/* Preview area */}
+        <div className="flex flex-1 flex-col items-center gap-5 overflow-auto bg-[#e0e0e0] p-5">
+          {files.map((f) => {
+            const url = blobCache.get(f.id);
+            return (
+              <div key={f.id} className="w-full max-w-2xl">
+                <div className="mb-2 text-[11px] font-semibold text-body">{f.name}</div>
+                <div className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18)]">
+                  {!url ? (
+                    <div className="grid h-48 place-items-center text-[13px] text-body">
+                      Preview lost — re-upload to view
+                    </div>
+                  ) : f.kind === "pdf" ? (
+                    <embed
+                      src={url}
+                      type="application/pdf"
+                      className="w-full"
+                      style={{
+                        height: isLandscape ? "480px" : "680px",
+                        display: "block",
+                      }}
+                    />
+                  ) : f.kind === "img" ? (
+                    <img
+                      src={url}
+                      alt={f.name}
+                      className="w-full object-contain"
+                      style={{
+                        transform: isLandscape ? "rotate(90deg)" : "none",
+                        maxHeight: "600px",
+                      }}
+                    />
+                  ) : (
+                    <div className="grid h-48 place-items-center text-[13px] text-body">
+                      Preview not available for this file type
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Configure Step ───────────────────────────────────────────────────────────
+
 function ConfigureStep() {
   const { files, settings, setSettings, totals } = useFlow();
   const { t } = useLang();
+  const [showPreview, setShowPreview] = useState(false);
   const file = files[0];
   const s = settings;
   const upd = <K extends keyof PrintSettings>(k: K, v: PrintSettings[K]) => setSettings({ ...s, [k]: v });
@@ -225,7 +339,7 @@ function ConfigureStep() {
         <Card>
           <div className="text-[15.5px] font-extrabold text-ink">{t.priceBreakdown}</div>
           <div className="mt-4 grid gap-x-10 gap-y-3 sm:grid-cols-2">
-            <Row label={t.pages} value={String(totals.pages)} />
+            <Row label={s.range === "custom" ? "Pages to print" : t.pages} value={String(totals.pages)} />
             <Row label={t.pricePerPage} value={`NPR ${totals.pricePerPage.toFixed(2)}`} />
             <Row label={t.copies} value={String(settings.copies)} />
             <Row label={t.totalPages} value={`${totals.pages} × ${settings.copies} = ${totals.totalPages}`} />
@@ -259,14 +373,20 @@ function ConfigureStep() {
         </div>
       </section>
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-4 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-4 shadow-card">
         <Link
           to="/flow/upload"
           className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-hairline bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-page"
         >
           <ArrowLeft className="h-4 w-4" /> {t.back}
         </Link>
-        <div className="flex items-center gap-2 text-[12px] text-body">
+        <button
+          onClick={() => setShowPreview(true)}
+          className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-brand/40 bg-brand-soft px-4 text-[14px] font-semibold text-brand hover:bg-brand/15"
+        >
+          <Eye className="h-4 w-4" /> Print Preview
+        </button>
+        <div className="hidden items-center gap-2 text-[12px] text-body sm:flex">
           <span className="font-bold text-ink">NPR {totals.total.toFixed(2)}</span>
           <span>·</span>
           <span>{totals.totalPages} {t.pages.toLowerCase()}</span>
@@ -278,6 +398,17 @@ function ConfigureStep() {
           {t.continue} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+
+      <AnimatePresence>
+        {showPreview && (
+          <PrintPreviewModal
+            files={files}
+            orientation={settings.orientation}
+            paper={settings.paper}
+            onClose={() => setShowPreview(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

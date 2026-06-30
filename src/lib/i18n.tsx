@@ -101,6 +101,7 @@ export const translations = {
     noFilesWarning: "Please upload files before proceeding.",
     termsText: "By continuing you agree to our",
     termsLink: "Terms of Service",
+    termsAnd: "and",
     privacyLink: "Privacy Policy",
     encryptedSafe: "Encrypted & Safe",
     encryptedSafeDesc: "Bank-level encryption protects your docs.",
@@ -138,6 +139,7 @@ export const translations = {
     orderHistorySub: "See your past orders",
     rateExperience: "Rate Your Experience",
     rateExperienceSub: "Help us serve you better",
+    whatsNext: "What's Next?",
     thankYou: "Thank you for choosing PrintCloud 💙",
     tagline: "Fast. Secure. Automatic.",
 
@@ -266,6 +268,7 @@ export const translations = {
     noFilesWarning: "अगाडि बढ्नु अघि फाइल अपलोड गर्नुहोस्।",
     termsText: "अगाडि बढ्दा तपाईं हाम्रो",
     termsLink: "सेवा सर्तहरू",
+    termsAnd: "र",
     privacyLink: "गोपनीयता नीति",
     encryptedSafe: "एन्क्रिप्टेड र सुरक्षित",
     encryptedSafeDesc: "बैंक-स्तरको सुरक्षाले तपाईंका कागजातहरू सुरक्षित राख्छ।",
@@ -303,6 +306,7 @@ export const translations = {
     orderHistorySub: "पुराना अर्डरहरू हेर्नुहोस्",
     rateExperience: "अनुभव रेट गर्नुहोस्",
     rateExperienceSub: "हामीलाई राम्रो सेवा दिन मद्दत गर्नुहोस्",
+    whatsNext: "अब के गर्ने?",
     thankYou: "PrintCloud रोज्नुभएकोमा धन्यवाद 💙",
     tagline: "छिटो। सुरक्षित। स्वचालित।",
 

@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Check, Printer, Clock, Shield, Download, RotateCw, History, Star, ChevronRight, ShieldCheck, Trash2, Home } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFlow } from "@/lib/flow-context";
-import { Card } from "./flow.upload";
+import { Card, blobCache } from "./flow.upload";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/i18n";
 
@@ -20,14 +20,8 @@ export const Route = createFileRoute("/flow/completed")({
 function hardDeleteFiles(setFiles: (f: []) => void) {
   // Revoke all blob URLs to free memory
   try {
-    const raw = sessionStorage.getItem("pc_files");
-    if (raw) {
-      const ids: string[] = JSON.parse(raw).map((f: { id: string }) => f.id);
-      ids.forEach((id) => {
-        // blobCache lives in flow.upload module — revoke via URL if available
-        // We don't have direct access here, but revoking sessionStorage clears the ref
-      });
-    }
+    blobCache.forEach((url) => URL.revokeObjectURL(url));
+    blobCache.clear();
   } catch { /* ignore */ }
   // Wipe all flow state from sessionStorage
   sessionStorage.removeItem("pc_files");
@@ -42,11 +36,18 @@ function CompletedStep() {
   const [deleted, setDeleted] = useState(false);
   const navigate = useNavigate();
 
+  // Snapshot totals/settings before wipe so the completed page can display them
+  const snapshot = useRef({ totals: { ...totals }, settings: { ...settings } });
+
   // Auto hard-delete on mount — files are gone the moment printing is confirmed
   useEffect(() => {
     hardDeleteFiles(setFiles as any);
     setDeleted(true);
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Use snapshot values so totals don't drop to 0 after wipe
+  const displayTotals = snapshot.current.totals;
+  const displaySettings = snapshot.current.settings;
   return (
     <div className="flex flex-col gap-5">
       <Card>
@@ -109,26 +110,26 @@ function CompletedStep() {
             </button>
           </div>
           <ul className="mt-4 space-y-3 text-[13.5px]">
-            <Row label={t.totalPages} value={`${totals.totalPages} ${t.pages.toLowerCase()}`} />
-            <Row label={t.copiesLabel} value={String(settings.copies)} />
-            <Row label={t.colorModeLabel} value={settings.color === "bw" ? t.bw : t.color} />
-            <Row label={t.paperSize} value={settings.paper} />
-            <Row label={t.printTypeLabel} value={settings.side === "single" ? t.singleSide : t.doubleSide} />
+            <Row label={t.totalPages} value={`${displayTotals.totalPages} ${t.pages.toLowerCase()}`} />
+            <Row label={t.copiesLabel} value={String(displaySettings.copies)} />
+            <Row label={t.colorModeLabel} value={displaySettings.color === "bw" ? t.bw : t.color} />
+            <Row label={t.paperSize} value={displaySettings.paper} />
+            <Row label={t.printTypeLabel} value={displaySettings.side === "single" ? t.singleSide : t.doubleSide} />
           </ul>
           <hr className="my-4 border-hairline" />
           <div className="flex items-center justify-between">
             <div className="text-[14px] font-extrabold text-ink">{t.totalAmount}</div>
-            <div className="text-[18px] font-extrabold text-brand">NPR {totals.total.toFixed(2)}</div>
+            <div className="text-[18px] font-extrabold text-brand">NPR {displayTotals.total.toFixed(2)}</div>
           </div>
         </Card>
 
         <Card>
-          <div className="text-[15.5px] font-extrabold text-ink">What's Next?</div>
+          <div className="text-[15.5px] font-extrabold text-ink">{t.whatsNext ?? "What's Next?"}</div>
           <ul className="mt-4 space-y-2.5">
-            <Next icon={Download} title="Download Receipt" sub="Save or share your receipt" tone="blue" />
-            <Next icon={RotateCw} title="Print Again" sub="Reorder the same document" tone="green" />
-            <Next icon={History} title="View Order History" sub="See your past orders" tone="violet" />
-            <Next icon={Star} title="Rate Your Experience" sub="Help us serve you better" tone="orange" />
+            <Next icon={Download} title={t.downloadReceipt} sub={t.downloadReceiptSub} tone="blue" onClick={() => {}} />
+            <Next icon={RotateCw} title={t.printAgain} sub={t.printAgainSub} tone="green" onClick={() => navigate({ to: "/flow/upload" })} />
+            <Next icon={History} title={t.orderHistory} sub={t.orderHistorySub} tone="violet" onClick={() => {}} />
+            <Next icon={Star} title={t.rateExperience} sub={t.rateExperienceSub} tone="orange" onClick={() => {}} />
           </ul>
         </Card>
       </div>
@@ -175,7 +176,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Next({ icon: Icon, title, sub, tone }: { icon: any; title: string; sub: string; tone: "blue" | "green" | "violet" | "orange" }) {
+function Next({ icon: Icon, title, sub, tone, onClick }: { icon: any; title: string; sub: string; tone: "blue" | "green" | "violet" | "orange"; onClick?: () => void }) {
   const tones = {
     blue: "bg-brand-soft text-brand",
     green: "bg-success-soft text-success",
@@ -184,7 +185,7 @@ function Next({ icon: Icon, title, sub, tone }: { icon: any; title: string; sub:
   };
   return (
     <li>
-      <button className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-hairline bg-surface p-3 text-left transition hover:bg-page">
+      <button onClick={onClick} className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-hairline bg-surface p-3 text-left transition hover:bg-page">
         <span className={cn("grid h-10 w-10 place-items-center rounded-xl", tones[tone])}>
           <Icon className="h-4.5 w-4.5" />
         </span>
